@@ -67,7 +67,8 @@ class MicroBit {
      * @param {string} extensionId - the id of the extension
      */
     constructor (runtime, extensionId) {
-
+        log.log('extensionId=' + String(extensionId));
+        
         /**
          * The Scratch 3.0 runtime used to trigger the green flag button.
          * @type {Runtime}
