@@ -27,6 +27,7 @@ BLEUUID = {
 
 class OttoPi {
     constructor (runtime, extensionId) {
+        log.log('extensionId=' + extensionId);
         this._runtime = runtime;
 
         this._ble = null;
@@ -35,6 +36,10 @@ class OttoPi {
         this._extensionId = extensionId;
 
         this._url = null;
+
+        this.reset = this.reset.bind(this);
+        this._onConnect = this._onConnect.bind(this);
+        this._onMessage = this._onMessage.bind(this);
     }
 
     scan () {
@@ -49,6 +54,7 @@ class OttoPi {
     }
 
     connect(id) {
+        log.log('id=' + String(id));
         if (this._ble) {
             this._ble.connectPeripheral(id);
         }
@@ -61,15 +67,23 @@ class OttoPi {
         this.reset();
     }
 
+    reset () {
+        log.log('reset()');
+    }
+
     isConnected () {
         let connected = false;
         if (this._ble) {
             connected = this._ble.isConnected();
         }
+        log.log('isConnected() -> ' + String(connected));
         return connected;
     }
 
     _onConnect () {
+        log.log('_onConnect()');
+        log.log(BLEUUID.SVC);
+        log.log(BLEUUID.CHA_CMD);
         this._ble.read(BLEUUID.SVC, BLEUUID.CHA_CMD, true, this._onMessage);
     }
 
