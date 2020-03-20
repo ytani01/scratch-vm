@@ -2,6 +2,8 @@ const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 const Cast = require('../../util/cast');
 const log = require('../../util/log');
+//const net = require('net');
+const Timer = require('../../util/timer');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -19,10 +21,82 @@ const menuIconURI = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZ
 
 
 /**
- * Class for the foo blocks in Scratch 3.0
+ * Class for the ottopiws blocks in Scratch 3.0
  * @param {Runtime} runtime - the runtime instantiating this block package.
  */ 
-class Scratch3Foo2 {
+class Scratch3OttoPiWs {
+
+    /**
+     * @return {array}
+     */
+    get CMD_MENU () {
+        return [
+            {
+                text: 'ストップ !',
+                value: ':auto_off'
+            },
+            {
+                text: '前進',
+                value: ':.forward'
+            },
+            {
+                text: '後退(バック)',
+                value: ':.backward'
+            },
+            {
+                text: '右を向く',
+                value: ':.turn_right'
+            },
+            {
+                text: '左を向く',
+                value: ':.turn_left'
+            },
+            {
+                text: 'すり足',
+                value: ':.suriashi_fwd'
+            },
+            {
+                text: '右にスライド',
+                value: ':.slide_right'
+            },
+            {
+                text: '左にスライド',
+                value: ':.slide_left'
+            }
+        ];
+    }
+
+    get MOTION_MENU () {
+        return [
+            {
+                text: 'ストップ !',
+                value: ':auto_off'
+            },
+            {
+                text: 'ハッピー !',
+                value: ':.happy'
+            },
+            {
+                text: 'ハイ !',
+                value: ':.hi'
+            },
+            {
+                text: 'ビックリ !!',
+                value: ':.surprised'
+            },
+            {
+                text: 'おじぎ',
+                value: ':.ojigi'
+            },
+            /*
+            {
+                text: 'おじぎ2',
+                value: ':.ojigi2'
+            }
+            */
+        ];
+    }
+
     constructor (runtime) {
         log.log('runtime=' + runtime);
         /**
@@ -30,6 +104,10 @@ class Scratch3Foo2 {
          * @type {Runtime}
          */
         this.runtime = runtime;
+
+        this.svr_addr = 'localhost';
+        this.svr_port = 9001;
+        this.timer_msec = 1500;
 
         // this._onTargetCreated = this._onTargetCreated.bind(this);
         // this.runtime.on('targetWasCreated', this._onTargetCreated);
@@ -41,11 +119,114 @@ class Scratch3Foo2 {
      */
     getInfo () {
         return {
-            id: 'foo2',
-            name: 'Foo2 Blocks',
-            menuIconURI: menuIconURI,
+            id: 'ottopiws',
+            name: 'OttoPi Websock',
+            //menuIconURI: menuIconURI,
             blockIconURI: blockIconURI,
+            showStatusButton: false,
             blocks: [
+                {
+                    opcode: 'getURL',
+                    text: 'URL',
+                    blockType: BlockType.REPORTER
+                },
+                {
+                    opcode: 'setURL1',
+                    blockType: BlockType.COMMAND,
+                    text: 'アドレス:[HOST]',
+                    arguments: {
+                        HOST: {
+                            type: ArgumentType.STRING,
+                            defaultValue: '192.168.0.228'
+                        },
+                    }
+                },
+                {
+                    opcode: 'setURL2',
+                    blockType: BlockType.COMMAND,
+                    text: 'アドレス:[ADDR1].[ADDR2].[ADDR3].[ADDR4]',
+                    arguments: {
+                        ADDR1: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 192
+                        },
+                        ADDR2: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 168
+                        },
+                        ADDR3: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        },
+                        ADDR4: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 228
+                        },
+                    }
+                },
+                {
+                    opcode: 'move',
+                    blockType: BlockType.COMMAND,
+                    text: '移動: [N]回 [CMD]',
+                    arguments: {
+                        N: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 1
+                        },
+                        CMD: {
+                            type: ArgumentType.STRING,
+                            menu: 'cmds',
+                            defaultValue: ':auto_off'
+                        }
+                    }
+                },
+                {
+                    opcode: 'motion',
+                    blockType: BlockType.COMMAND,
+                    text: 'モーション: [N]回 [CMD]',
+                    arguments: {
+                        N: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 1
+                        },
+                        CMD: {
+                            type: ArgumentType.STRING,
+                            menu: 'motions',
+                            defaultValue: ':.surprised'
+                        }
+                    }
+                },
+                {
+                    opcode: 'setURL0',
+                    blockType: BlockType.COMMAND,
+                    text: 'URL:[URL]',
+                    arguments: {
+                        URL: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'ws://192.168.0.228:9001/'
+                        },
+                    }
+                },
+                {
+                    opcode: 'sendMsg',
+                    blockType: BlockType.COMMAND,
+                    text: 'WebSock: [URL] <== [MSG]',
+                    arguments: {
+                        URL: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'ws://192.168.0.228:9001/'
+                        },
+                        MSG: {
+                            type: ArgumentType.STRING,
+                            defaultValue: ':auto_off'
+                        }
+                    }
+                },
+                {
+                    opcode: 'getBrowser',
+                    text: 'user agent',
+                    blockType: BlockType.REPORTER
+                },
                 {
                     opcode: 'calcPower',
                     blockType: BlockType.REPORTER,
@@ -61,8 +242,124 @@ class Scratch3Foo2 {
                 }
             ],
             menus: {
+                cmds: this.CMD_MENU,
+                motions: this.MOTION_MENU,
             }
         };
+    }
+
+    _startStackTimer (util, duration_msec) {
+        util.stackFrame.timer = new Timer();
+        util.stackFrame.timer.start();
+        util.stackFrame.duration = duration_msec;
+        util.yield();
+    }
+
+    setURL0 (args) {
+        this.url = Cast.toString(args.URL);
+        log.log('url=' + this.url);
+    }
+
+    setURL1 (args) {
+        this.svr_addr = Cast.toString(args.HOST);
+        this.url = 'ws://' + this.svr_addr + ':' + this.svr_port + '/';
+        log.log('url=' + this.url);
+    }
+
+    setURL2 (args) {
+        const addr1 = Cast.toString(args.ADDR1);
+        const addr2 = Cast.toString(args.ADDR2);
+        const addr3 = Cast.toString(args.ADDR3);
+        const addr4 = Cast.toString(args.ADDR4);
+        this.svr_addr = addr1 + '.' + addr2 + '.' + addr3 + '.' + addr4;
+        this.url = 'ws://' + this.svr_addr + ':' + this.svr_port + '/';
+        log.log('url=' + this.url);
+    }
+
+    getURL (args) {
+        let ret = this.url;
+        if (this.url === undefined) {
+            ret = '?';
+        }
+        
+        return ret;
+    }
+    
+    wsSend1(url, msg) {
+        log.log('msg=' + msg);
+        let ws = new WebSocket(url);
+
+        ws.onopen = function (event) {
+            log.log('ws.send(' + msg + ')');
+            ws.send(msg);
+        };
+
+        ws.onmessage = function(event) {
+            log.log('onmessage: data=' + String(event.data));
+
+            ws.close();
+            /*
+            if (event.data.length != 0) {
+                ws.close();
+            }
+            */
+        };
+
+        ws.onerror = function(event) {
+            log.log('onerror(' + msg + '):' + String(event));
+            return false;
+        };
+    }
+
+    execCmd (args, util) {
+        if (this.url === undefined) {
+            log.log('URL: undefined');
+            return false;
+        }
+        
+        const cmd = Cast.toString(args.CMD) + ' ' + Cast.toString(args.N);
+
+        if (!util.stackFrame.timer) {
+            this.wsSend1(this.url, cmd);
+
+            this._startStackTimer(util, this.timer_msec);
+            util.yield();
+
+        } else {
+            const timeElapsed = util.stackFrame.timer.timeElapsed();
+            if (timeElapsed < util.stackFrame.duration) {
+                //this.runtime.requestRedraw();
+                util.yield();
+
+            } else {
+                log.log('move(' + cmd + '):done');
+            }
+        }
+        return undefined;
+    }
+    
+    move (args, util) {
+        this.execCmd(args, util);
+    }
+
+    motion (args, util) {
+        this.execCmd(args, util);
+    }
+    
+    sendMsg (args, util) {
+        this.url = Cast.toString(args.URL);
+        log.log('url=' + this.url);
+
+        const msg = Cast.toString(args.MSG);
+        log.log('msg=' + msg);
+
+        this.wsSend1(this.url, msg);
+
+        log.log('wsMsg(' + msg + '):done');
+    }
+
+    getBrowser () {
+        return navigator.userAgent;
     }
 
     calcPower (args) {
@@ -70,4 +367,4 @@ class Scratch3Foo2 {
     }
 }
 
-module.exports = Scratch3Foo2;
+module.exports = Scratch3OttoPiWs;
