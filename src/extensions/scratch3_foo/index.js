@@ -184,12 +184,24 @@ class Scratch3Foo {
                 value: ':.happy'
             },
             {
-                text: 'ハイ !',
-                value: ':.hi'
-            },
-            {
                 text: 'ビックリ !!',
                 value: ':.surprised'
+            },
+            {
+                text: 'ハイ !(右)',
+                value: ':.hi_right'
+            },
+            {
+                text: 'ハイ !(左)',
+                value: ':.hi_left'
+            },
+            {
+                text: 'バイバイ(右)',
+                value: ':.bye_right'
+            },
+            {
+                text: 'バイバイ(左)',
+                value: ':.bye_left'
             },
             {
                 text: 'おじぎ',
