@@ -114,11 +114,12 @@ class OttoPi {
         }
         const data = Base64Util.uint8ArrayToBase64(output);
 
-        this._ble.write(BLEUUID.SVC, BLEUUID.CHA_CMD, data, 'base64', true).then(
-            () => {
-                this._busy = false;
-            }
-        );
+        this._ble.write(BLEUUID.SVC, BLEUUID.CHA_CMD, data, 'base64', true)
+            .then(
+                () => {
+                    this._busy = false;
+                }
+            );
     }
 
     read_resp () {
