@@ -79,7 +79,9 @@ class OttoPi {
         if (this._ble) {
             connected = this._ble.isConnected();
         }
-        log.log('isConnected() -> ' + String(connected));
+        if (! connected) {
+            log.log('isConnected() > ' + String(connected));
+        }
         return connected;
     }
 
@@ -96,35 +98,52 @@ class OttoPi {
     }
 
     send_cmd (cmd) {
-        log.log('send_cmd \'' + cmd + '\'');
+        log.log("> send_cmd:'" + cmd + "'");
         if (!this.isConnected()) {
-            log.log('is not connected');
-            return;
+            log.log('< send_cmd: is not connected');
+            return "no connection";
         }
         if (this._busy) {
-            log.log('busy');
-            return;
+            log.log('< send_cmd: busy');
+            return "busy";
         }
 
         this._busy = true;
 
-        output = new Uint8Array(cmd.length);
-        for (let i = 0; i < cmd.length; i++) {
-            output[i] = cmd.charCodeAt(i);
-        }
+        const output = (new TextEncoder).encode(cmd); // to uint8Array
         const data = Base64Util.uint8ArrayToBase64(output);
 
         this._ble.write(BLEUUID.SVC, BLEUUID.CHA_CMD, data, 'base64', true)
-            .then(
-                () => {
-                    this._busy = false;
+            .then(() => {
+                log.log("write:'" + cmd + "':done");
+                // this._busy = false;
+            });
+        log.log("_ble.write: promise");
+        
+        this._ble.read(BLEUUID.SVC, BLEUUID.CHA_RESP, false)
+            .then(result => {
+                const input = Base64Util.base64ToUint8Array(result.message);
+                const resp = (new TextDecoder).decode(input);
+                log.log("resp='" + resp + "'");
+
+                if (resp.length > 0) {
+                    const resp_json = JSON.parse(resp);
+                    log.log("CMD='" + resp_json.CMD + "'");
                 }
-            );
+                this._busy = false;
+            });
+        log.log("_ble.read: promise");
+
+        return "done";
     }
 
     read_resp () {
-        log.log('read_resp()');
-        this._ble.read(BLEUUID.SVC, BLEUUID.CHA_RESP, false);
+        log.log('> read_resp()');
+
+        this._ble.read(BLEUUID.SVC, BLEUUID.CHA_RESP, false)
+            .then(result => {
+                const input = Base64Util.base64ToUint8Array(result.message);
+            });
     }
 }
 
@@ -139,10 +158,6 @@ class Scratch3Foo {
      */
     get CMD_MENU () {
         return [
-            {
-                text: 'ストップ !',
-                value: ':auto_off'
-            },
             {
                 text: '前進',
                 value: ':.forward'
@@ -176,10 +191,6 @@ class Scratch3Foo {
 
     get MOTION_MENU () {
         return [
-            {
-                text: 'ストップ !',
-                value: ':auto_off'
-            },
             {
                 text: 'ハッピー !',
                 value: ':.happy'
@@ -227,7 +238,7 @@ class Scratch3Foo {
 
         this.svr_addr = 'localhost';
         this.svr_port = 9001;
-        this.timer_msec = 1500;
+        this.timer_msec = 5000;
 
         this._peripheral = new OttoPi(this.runtime, 'foo');
         // this._onTargetCreated = this._onTargetCreated.bind(this);
@@ -247,6 +258,11 @@ class Scratch3Foo {
             showStatusButton: true,
             blocks: [
                 {
+                    opcode: 'stop',
+                    blockType: BlockType.COMMAND,
+                    text: 'ストップ'
+                },
+                {
                     opcode: 'move',
                     blockType: BlockType.COMMAND,
                     text: '移動: [N]回 [CMD]',
@@ -258,7 +274,7 @@ class Scratch3Foo {
                         CMD: {
                             type: ArgumentType.STRING,
                             menu: 'cmds',
-                            defaultValue: ':auto_off'
+                            defaultValue: ':.forward'
                         }
                     }
                 },
@@ -274,7 +290,7 @@ class Scratch3Foo {
                         CMD: {
                             type: ArgumentType.STRING,
                             menu: 'motions',
-                            defaultValue: ':.surprised'
+                            defaultValue: ':.happy'
                         }
                     }
                 },
@@ -320,26 +336,20 @@ class Scratch3Foo {
         return ret;
     }
     
+    stop(args, util) {
+        ret = this._peripheral.send_cmd(":auto_off");
+        if (ret == "busy") {
+            util.yield();
+        }
+    }
+
     execCmd (args, util) {
         const cmd = Cast.toString(args.CMD) + ' ' + Cast.toString(args.N);
 
-        if (!util.stackFrame.timer) {
-            this._peripheral.send_cmd(cmd);
-
-            this._startStackTimer(util, this.timer_msec);
+        ret = this._peripheral.send_cmd(cmd);
+        if (ret == "busy") {
             util.yield();
-
-        } else {
-            const timeElapsed = util.stackFrame.timer.timeElapsed();
-            if (timeElapsed < util.stackFrame.duration) {
-                //this.runtime.requestRedraw();
-                util.yield();
-
-            } else {
-                log.log('move(' + cmd + '):done');
-            }
         }
-        return undefined;
     }
     
     move (args, util) {
