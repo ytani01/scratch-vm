@@ -16,8 +16,9 @@ const blockIconURI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAnCAYA
 
 BLEUUID = {
     SVC: '4e769f72-391f-4cd3-bbea-25a2e945066b',
-    CHA_CMD: '70e45870-79ec-44c6-859d-0897aa7134b6',
-    CHA_RESP: '79394316-6874-4506-9c20-1245751c6c20'
+    CHA_CMD: '70e45870-79ec-44c6-859d-0897aa7134b6',  // Write
+    CHA_RESP: '79394316-6874-4506-9c20-1245751c6c20', // Read
+    CHA_DIST: '49000250-d968-48bb-80b3-fdd99dfe75a6', // Notification
 };
 
 class OttoPi {
