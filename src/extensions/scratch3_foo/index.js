@@ -31,6 +31,8 @@ class OttoPi {
 
         this._extensionId = extensionId;
 
+        this.distance = 0;
+
         this._url = null;
 
         this.reset = this.reset.bind(this);
@@ -83,25 +85,30 @@ class OttoPi {
         log.log('_onConnect()');
         log.log(BLEUUID.SVC);
         log.log(BLEUUID.CHA_CMD);
-        this._ble.read(BLEUUID.SVC, BLEUUID.CHA_RESP, true, this._onMessage);
+        //this._ble.read(BLEUUID.SVC, BLEUUID.CHA_RESP, true, this._onMessage);
+        this._ble.startNotifications(BLEUUID.SVC, BLEUUID.CHA_RESP, this._onMessage);
     }
 
     _onMessage (base64) {
         const data = Base64Util.base64ToUint8Array(base64);
-        log.log('data=' + String(base64));
+        const resp = (new TextDecoder).decode(data);
+        log.log("resp='" + resp + "'");
+
+        this.distance = JSON.parse(resp).MSG.d;
+        log.log("d=" + this.distance);
     }
 
     send_cmd (cmd) {
-        log.log("> send_cmd:'" + cmd + "'");
         if (!this.isConnected()) {
             log.log('< send_cmd: is not connected');
             return "no connection";
         }
         if (this._busy) {
-            log.log('< send_cmd: busy');
+            // log.log('< send_cmd: busy');
             return "busy";
         }
 
+        log.log("> send_cmd:'" + cmd + "'");
         this._busy = true;
 
         const output = (new TextEncoder).encode(cmd); // to uint8Array
@@ -110,10 +117,11 @@ class OttoPi {
         this._ble.write(BLEUUID.SVC, BLEUUID.CHA_CMD, data, 'base64', true)
             .then(() => {
                 log.log("write:'" + cmd + "':done");
-                // this._busy = false;
+                this._busy = false;
             });
-        log.log("_ble.write: promise");
+        // log.log("_ble.write: promise");
         
+        /*
         this._ble.read(BLEUUID.SVC, BLEUUID.CHA_RESP, false)
             .then(result => {
                 const input = Base64Util.base64ToUint8Array(result.message);
@@ -127,6 +135,7 @@ class OttoPi {
                 this._busy = false;
             });
         log.log("_ble.read: promise");
+        */
 
         return "done";
     }
@@ -222,6 +231,19 @@ class Scratch3Foo {
         ];
     }
 
+    get OP_MENU () {
+        return [
+            {
+                text: 'より近い',
+                value: '<'
+            },
+            {
+                text: 'より遠い',
+                value: '>'
+            },
+        ];
+    }
+    
     constructor (runtime) {
         log.log('runtime=' + runtime);
         /**
@@ -288,6 +310,27 @@ class Scratch3Foo {
                     }
                 },
                 {
+                    opcode: 'getDistance',
+                    text: '距離(mm)',
+                    blockType: BlockType.REPORTER
+                },
+                {
+                    opcode: 'whenDistance',
+                    text: '距離が[DISTANCE]mm[OP]とき',
+                    blockType: BlockType.HAT,
+                    arguments: {
+                        DISTANCE: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 300
+                        },
+                        OP: {
+                            type: ArgumentType.STRING,
+                            menu: 'ops',
+                            defaultValue: '<'
+                        }
+                    }
+                },
+                {
                     opcode: 'getBrowser',
                     text: 'user agent',
                     blockType: BlockType.REPORTER
@@ -309,6 +352,7 @@ class Scratch3Foo {
             menus: {
                 cmds: this.CMD_MENU,
                 motions: this.MOTION_MENU,
+                ops: this.OP_MENU
             }
         };
     }
@@ -351,6 +395,25 @@ class Scratch3Foo {
 
     motion (args, util) {
         this.execCmd(args, util);
+    }
+    
+    getDistance () {
+        return this._peripheral.distance;
+    }
+
+    whenDistance(args) {
+        const op = Cast.toString(args.OP);
+        const d = Cast.toNumber(args.DISTANCE);
+        // log.log('op=' + op);
+        // log.log('distance=' + d);
+        switch ( op ) {
+            case '<':
+                return this._peripheral.distance < d;
+            case '>':
+                return this._peripheral.distance > d;
+            default:
+                return false;
+        }
     }
     
     getBrowser () {
