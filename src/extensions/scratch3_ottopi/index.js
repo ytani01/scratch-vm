@@ -324,6 +324,10 @@ class Scratch3Ottopi {
                 value: 35
             },
             {
+                text: '40',
+                value: 40
+            },
+            {
                 text: '45',
                 value: 45
             },
@@ -577,7 +581,11 @@ class Scratch3Ottopi {
         const d2 = Cast.toNumber(args.D2);
         const d = this._peripheral.distance / 10;
 
-        return (d >= d1) && (d <= d2);
+        if ( d1 < d2 ) {
+            return (d >= d1) && (d <= d2);
+        } else {
+            return (d >= d2) && (d <= d1);
+        }
     }
     
     whenDistance(args) {
