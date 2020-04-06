@@ -151,10 +151,10 @@ class OttoPi {
 }
 
 /**
- * Class for the foo blocks in Scratch 3.0
+ * Class for the ottopi blocks in Scratch 3.0
  * @param {Runtime} runtime - the runtime instantiating this block package.
  */ 
-class Scratch3Foo {
+class Scratch3Ottopi {
 
     /**
      * @return {array}
@@ -244,6 +244,124 @@ class Scratch3Foo {
         ];
     }
     
+    get NUM_MENU () {
+        return [
+            {
+                text: '1',
+                value: 1
+            },
+            {
+                text: '2',
+                value: 2
+            },
+            {
+                text: '3',
+                value: 3
+            },
+            {
+                text: '4',
+                value: 4
+            },
+            {
+                text: '5',
+                value: 5
+            },
+            {
+                text: '6',
+                value: 6
+            },
+            {
+                text: '7',
+                value: 7
+            },
+            {
+                text: '8',
+                value: 8
+            },
+            {
+                text: '9',
+                value: 9
+            },
+            {
+                text: '10',
+                value: 10
+            },
+            {
+                text: 'ずーっと',
+                value: 100
+            },
+        ];
+    }
+
+    get DISTANCE_MENU () {
+        return [
+            {
+                text: '5',
+                value: 5
+            },
+            {
+                text: '10',
+                value: 10
+            },
+            {
+                text: '15',
+                value: 15
+            },
+            {
+                text: '20',
+                value: 20
+            },
+            {
+                text: '25',
+                value: 25
+            },
+            {
+                text: '30',
+                value: 30
+            },
+            {
+                text: '35',
+                value: 35
+            },
+            {
+                text: '45',
+                value: 45
+            },
+            {
+                text: '50',
+                value: 50
+            },
+            {
+                text: '60',
+                value: 60
+            },
+            {
+                text: '70',
+                value: 70
+            },
+            {
+                text: '80',
+                value: 80
+            },
+            {
+                text: '90',
+                value: 90
+            },
+            {
+                text: '100',
+                value: 100
+            },
+            {
+                text: '150',
+                value: 150
+            },
+            {
+                text: '200',
+                value: 200
+            },
+        ];
+    }
+    
     constructor (runtime) {
         log.log('runtime=' + runtime);
         /**
@@ -256,7 +374,7 @@ class Scratch3Foo {
         this.svr_port = 9001;
         this.timer_msec = 5000;
 
-        this._peripheral = new OttoPi(this.runtime, 'foo');
+        this._peripheral = new OttoPi(this.runtime, 'ottopi');
         // this._onTargetCreated = this._onTargetCreated.bind(this);
         // this.runtime.on('targetWasCreated', this._onTargetCreated);
     }
@@ -267,8 +385,8 @@ class Scratch3Foo {
      */
     getInfo () {
         return {
-            id: 'foo',
-            name: 'Foo Blocks',
+            id: 'ottopi',
+            name: 'OttoPi オットー・パイ',
             blockIconURI: blockIconURI,
             showStatusButton: true,
             blocks: [
@@ -284,6 +402,7 @@ class Scratch3Foo {
                     arguments: {
                         N: {
                             type: ArgumentType.NUMBER,
+                            menu: 'nums',
                             defaultValue: 1
                         },
                         CMD: {
@@ -300,6 +419,7 @@ class Scratch3Foo {
                     arguments: {
                         N: {
                             type: ArgumentType.NUMBER,
+                            menu: 'nums',
                             defaultValue: 1
                         },
                         CMD: {
@@ -311,17 +431,18 @@ class Scratch3Foo {
                 },
                 {
                     opcode: 'getDistance',
-                    text: '距離(mm)',
+                    text: '距離(cm)',
                     blockType: BlockType.REPORTER
                 },
                 {
-                    opcode: 'whenDistance',
-                    text: '距離が[DISTANCE]mm[OP]とき',
-                    blockType: BlockType.HAT,
+                    opcode: 'distanceComp',
+                    text: '距離が [DISTANCE]cm [OP]',
+                    blockType: BlockType.BOOLEAN,
                     arguments: {
                         DISTANCE: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: 300
+                            menu: 'distance',
+                            defaultValue: 30
                         },
                         OP: {
                             type: ArgumentType.STRING,
@@ -330,6 +451,41 @@ class Scratch3Foo {
                         }
                     }
                 },
+                {
+                    opcode: 'distanceBetween',
+                    text: '距離が [D1]cm ～ [D2]cm',
+                    blockType: BlockType.BOOLEAN,
+                    arguments: {
+                        D1: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'distance',
+                            defaultValue: 0
+                        },
+                        D2: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'distance',
+                            defaultValue: 30
+                        }
+                    }
+                },
+                {
+                    opcode: 'whenDistance',
+                    text: '距離が [DISTANCE]cm [OP]とき',
+                    blockType: BlockType.HAT,
+                    arguments: {
+                        DISTANCE: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'distance',
+                            defaultValue: 30
+                        },
+                        OP: {
+                            type: ArgumentType.STRING,
+                            menu: 'ops',
+                            defaultValue: '<'
+                        }
+                    }
+                },
+                /*
                 {
                     opcode: 'getBrowser',
                     text: 'user agent',
@@ -348,11 +504,14 @@ class Scratch3Foo {
                         }
                     }
                 }
+                */
             ],
             menus: {
                 cmds: this.CMD_MENU,
                 motions: this.MOTION_MENU,
-                ops: this.OP_MENU
+                ops: this.OP_MENU,
+                nums: this.NUM_MENU,
+                distance: this.DISTANCE_MENU
             }
         };
     }
@@ -398,21 +557,38 @@ class Scratch3Foo {
     }
     
     getDistance () {
-        return this._peripheral.distance;
+        return Math.round(this._peripheral.distance / 10);
     }
 
+    distanceComp (args) {
+        const d1 = Cast.toNumber(args.DISTANCE);
+        const op = Cast.toString(args.OP);
+        const d = this._peripheral.distance / 10;
+
+        if ( op == '>' ) {
+            return d > d1;
+        } else {
+            return d < d1;
+        }
+    }
+    
+    distanceBetween (args) {
+        const d1 = Cast.toNumber(args.D1);
+        const d2 = Cast.toNumber(args.D2);
+        const d = this._peripheral.distance / 10;
+
+        return (d >= d1) && (d <= d2);
+    }
+    
     whenDistance(args) {
         const op = Cast.toString(args.OP);
-        const d = Cast.toNumber(args.DISTANCE);
-        // log.log('op=' + op);
-        // log.log('distance=' + d);
-        switch ( op ) {
-            case '<':
-                return this._peripheral.distance < d;
-            case '>':
-                return this._peripheral.distance > d;
-            default:
-                return false;
+        const d1 = Cast.toNumber(args.DISTANCE) / 10;
+        const d = this._peripheral.distance / 10;
+
+        if ( op == '>' ) {
+            return d > d1;
+        } else {
+            return d < d1;
         }
     }
     
@@ -425,4 +601,4 @@ class Scratch3Foo {
     }
 }
 
-module.exports = Scratch3Foo;
+module.exports = Scratch3Ottopi;
